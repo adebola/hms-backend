@@ -1,0 +1,284 @@
+server:
+  port: 8080
+
+logging:
+  pattern:
+    console: "%green(%d{yyyy-MM-dd HH:mm:ss}) %yellow([%t]) %blue(%-5level) %magenta(%logger{36}) - %msg%n"
+  level:
+    io.factorialsystems.gateway: DEBUG
+    org.springframework.cloud.gateway: DEBUG
+    org.springframework.web: INFO
+    reactor.netty: INFO
+
+spring:
+  application:
+    name: hms-gateway
+  threads:
+    virtual:
+      enabled: true
+  cloud:
+    gateway:
+      server:
+        webflux:
+          globalcors:
+            cors-configurations:
+              '[/**]':
+                allowedOriginPatterns: "http://localhost:*,http://127.0.0.1:*"
+                allowedMethods: "GET, POST, PUT, DELETE, OPTIONS, PATCH"
+                allowedHeaders: "*"
+                exposedHeaders: "Authorization, Content-Type, Cache-Control, X-Requested-With, X-Request-ID, Location, Content-Disposition"
+                allowCredentials: true
+            add-to-simple-url-handler-mapping: true
+          routes:
+            # =================================================================
+            # AUTHORIZATION SERVICE ROUTES (Port 9000, Context: /auth)
+            # =================================================================
+
+            # Authentication endpoints
+            - id: auth-authentication
+              uri: ${gateway.services.auth}
+              predicates:
+                - Path=/api/v1/auth/**
+              filters:
+                - RewritePath=/api/v1/auth/(?<segment>.*), /auth/api/v1/auth/$\{segment}
+                - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials
+
+            # Tenant management endpoints
+            - id: auth-tenants
+              uri: ${gateway.services.auth}
+              predicates:
+                - Path=/api/v1/tenants/**
+              filters:
+                - RewritePath=/api/v1/tenants/(?<segment>.*), /auth/api/v1/tenants/$\{segment}
+                - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials
+
+            # User management endpoints
+            - id: auth-users
+              uri: ${gateway.services.auth}
+              predicates:
+                - Path=/api/v1/users/**
+              filters:
+                - RewritePath=/api/v1/users/(?<segment>.*), /auth/api/v1/users/$\{segment}
+                - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials
+
+            # Role management endpoints
+            - id: auth-roles
+              uri: ${gateway.services.auth}
+              predicates:
+                - Path=/api/v1/roles/**
+              filters:
+                - RewritePath=/api/v1/roles/(?<segment>.*), /auth/api/v1/roles/$\{segment}
+                - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials
+
+            # Permission endpoints
+            - id: auth-permissions
+              uri: ${gateway.services.auth}
+              predicates:
+                - Path=/api/v1/permissions/**
+              filters:
+                - RewritePath=/api/v1/permissions/(?<segment>.*), /auth/api/v1/permissions/$\{segment}
+                - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials
+
+            # =================================================================
+            # COMMUNICATIONS SERVICE ROUTES (Port 8081)
+            # =================================================================
+
+            - id: communications-email
+              uri: ${gateway.services.communications}
+              predicates:
+                - Path=/api/v1/email/**
+              filters:
+                - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials
+
+            - id: communications-sms
+              uri: ${gateway.services.communications}
+              predicates:
+                - Path=/api/v1/sms/**
+              filters:
+                - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials
+
+            # =================================================================
+            # PATIENT SERVICE ROUTES (Port 8082) - Active
+            # =================================================================
+
+            - id: patient-management
+              uri: ${gateway.services.patient}
+              predicates:
+                - Path=/api/v1/patients/**
+              filters:
+                - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials
+
+            # =================================================================
+            # PRESCRIPTION SERVICE ROUTES (Port 8083) - Placeholder
+            # =================================================================
+
+#            - id: prescription-management
+#              uri: ${gateway.services.prescription}
+#              predicates:
+#                - Path=/api/v1/prescriptions/**
+#              filters:
+#                - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials
+
+            # =================================================================
+            # BILLING SERVICE ROUTES (Port 8084) - Placeholder
+            # =================================================================
+
+#            - id: billing-invoices
+#              uri: ${gateway.services.billing}
+#              predicates:
+#                - Path=/api/v1/invoices/**
+#              filters:
+#                - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials
+#
+#            - id: billing-payments
+#              uri: ${gateway.services.billing}
+#              predicates:
+#                - Path=/api/v1/payments/**
+#              filters:
+#                - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials
+#
+#            - id: billing-charges
+#              uri: ${gateway.services.billing}
+#              predicates:
+#                - Path=/api/v1/charges/**
+#              filters:
+#                - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials
+
+            # =================================================================
+            # APPOINTMENT SERVICE ROUTES (Port 8085) - Placeholder
+            # =================================================================
+
+#            - id: appointment-management
+#              uri: ${gateway.services.appointment}
+#              predicates:
+#                - Path=/api/v1/appointments/**
+#              filters:
+#                - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials
+#
+#            - id: appointment-calendar
+#              uri: ${gateway.services.appointment}
+#              predicates:
+#                - Path=/api/v1/calendar/**
+#              filters:
+#                - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials
+
+            # =================================================================
+            # LAB SERVICE ROUTES (Port 8086) - Placeholder
+            # =================================================================
+
+#            - id: lab-orders
+#              uri: ${gateway.services.lab}
+#              predicates:
+#                - Path=/api/v1/lab-orders/**
+#              filters:
+#                - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials
+#
+#            - id: lab-results
+#              uri: ${gateway.services.lab}
+#              predicates:
+#                - Path=/api/v1/lab-results/**
+#              filters:
+#                - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials
+
+            # =================================================================
+            # PHARMACY SERVICE ROUTES (Port 8087) - Placeholder
+            # =================================================================
+
+#            - id: pharmacy-inventory
+#              uri: ${gateway.services.pharmacy}
+#              predicates:
+#                - Path=/api/v1/inventory/**
+#              filters:
+#                - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials
+#
+#            - id: pharmacy-dispensing
+#              uri: ${gateway.services.pharmacy}
+#              predicates:
+#                - Path=/api/v1/dispensing/**
+#              filters:
+#                - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials
+
+            # =================================================================
+            # REPORTING SERVICE ROUTES (Port 8088) - Placeholder
+            # =================================================================
+
+#            - id: reporting-reports
+#              uri: ${gateway.services.reporting}
+#              predicates:
+#                - Path=/api/v1/reports/**
+#              filters:
+#                - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials
+#
+#            - id: reporting-analytics
+#              uri: ${gateway.services.reporting}
+#              predicates:
+#                - Path=/api/v1/analytics/**
+#              filters:
+#                - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials
+
+            # =================================================================
+            # HEALTH CHECK AGGREGATION
+            # =================================================================
+
+            - id: health-auth
+              uri: ${gateway.services.auth}
+              predicates:
+                - Path=/health/auth
+              filters:
+                - RewritePath=/health/auth, /auth/actuator/health
+
+            - id: health-communications
+              uri: ${gateway.services.communications}
+              predicates:
+                - Path=/health/communications
+              filters:
+                - RewritePath=/health/communications, /actuator/health
+
+            - id: health-patient
+              uri: ${gateway.services.patient}
+              predicates:
+                - Path=/health/patient
+              filters:
+                - RewritePath=/health/patient, /actuator/health
+
+# Gateway service URLs (development)
+gateway:
+  services:
+    auth: http://localhost:9000
+    communications: http://localhost:8081
+    patient: http://localhost:8082
+    prescription: http://localhost:8083
+    billing: http://localhost:8084
+    appointment: http://localhost:8085
+    lab: http://localhost:8086
+    pharmacy: http://localhost:8087
+    reporting: http://localhost:8088
+
+  cors:
+    allowed-origins:
+      - http://localhost:4200
+      - http://localhost:3000
+      - http://127.0.0.1:4200
+      - http://127.0.0.1:3000
+
+  logging:
+    enabled: true
+    include-headers: false
+    include-payload: false
+    max-payload-length: 1000
+
+# Actuator endpoints
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus,gateway
+  endpoint:
+    health:
+      show-details: always
+    gateway:
+      enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true

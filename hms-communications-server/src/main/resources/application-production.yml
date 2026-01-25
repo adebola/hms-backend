@@ -1,0 +1,57 @@
+spring:
+  datasource:
+    url: ${DATABASE_URL}
+    username: ${DATABASE_USERNAME}
+    password: ${DATABASE_PASSWORD}
+    hikari:
+      maximum-pool-size: ${DATABASE_POOL_SIZE:20}
+      minimum-idle: ${DATABASE_MIN_IDLE:10}
+
+  jpa:
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+        use_sql_comments: false
+
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD}
+      ssl:
+        enabled: ${REDIS_SSL_ENABLED:true}
+
+  rabbitmq:
+    host: ${RABBITMQ_HOST}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME}
+    password: ${RABBITMQ_PASSWORD}
+    virtual-host: ${RABBITMQ_VHOST:/}
+    ssl:
+      enabled: ${RABBITMQ_SSL_ENABLED:true}
+
+hms:
+  communications:
+    brevo:
+      api-key: ${BREVO_API_KEY}
+      default-from-email: ${BREVO_FROM_EMAIL}
+      default-from-name: ${BREVO_FROM_NAME}
+    sms:
+      provider: ${SMS_PROVIDER:STUB}
+      account-sid: ${TWILIO_ACCOUNT_SID:}
+      auth-token: ${TWILIO_AUTH_TOKEN:}
+      default-from-phone: ${TWILIO_FROM_PHONE:}
+    jwt:
+      secret: ${JWT_SECRET}
+      issuer: ${JWT_ISSUER:hms-authorization-server}
+
+logging:
+  level:
+    root: WARN
+    io.factorialsystems.communications: INFO
+    org.springframework.web: WARN
+    org.springframework.security: WARN
+    org.hibernate.SQL: WARN
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"

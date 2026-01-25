@@ -1,0 +1,153 @@
+version: '3.8'
+
+# HMS Backend - Docker Compose Configuration
+# Infrastructure services for local development
+
+services:
+  # ============================================================================
+  # PostgreSQL Database
+  # ============================================================================
+  postgres:
+    image: postgres:15-alpine
+    container_name: hms-postgres
+    environment:
+      POSTGRES_USER: hms_user
+      POSTGRES_PASSWORD: hms_password
+      POSTGRES_DB: hms_auth
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-scripts:/docker-entrypoint-initdb.d
+    networks:
+      - hms-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hms_user -d hms_auth"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ============================================================================
+  # Redis Cache
+  # ============================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: hms-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - hms-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+
+  # ============================================================================
+  # RabbitMQ Message Broker
+  # ============================================================================
+  rabbitmq:
+    image: rabbitmq:3.12-management-alpine
+    container_name: hms-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: hms_user
+      RABBITMQ_DEFAULT_PASS: hms_password
+      RABBITMQ_DEFAULT_VHOST: /
+    ports:
+      - "5672:5672"   # AMQP port
+      - "15672:15672" # Management UI
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - hms-network
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    restart: unless-stopped
+
+  # ============================================================================
+  # MongoDB (Optional - for future use)
+  # ============================================================================
+  # mongodb:
+  #   image: mongo:7
+  #   container_name: hms-mongodb
+  #   environment:
+  #     MONGO_INITDB_ROOT_USERNAME: hms_user
+  #     MONGO_INITDB_ROOT_PASSWORD: hms_password
+  #     MONGO_INITDB_DATABASE: hms_clinical
+  #   ports:
+  #     - "27017:27017"
+  #   volumes:
+  #     - mongodb_data:/data/db
+  #   networks:
+  #     - hms-network
+  #   restart: unless-stopped
+
+  # ============================================================================
+  # pgAdmin (Database Management UI) - Optional
+  # ============================================================================
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: hms-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@hms.local
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    networks:
+      - hms-network
+    depends_on:
+      - postgres
+    restart: unless-stopped
+    profiles:
+      - tools
+
+  # ============================================================================
+  # Redis Commander (Redis Management UI) - Optional
+  # ============================================================================
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: hms-redis-commander
+    environment:
+      REDIS_HOSTS: local:redis:6379
+    ports:
+      - "8081:8081"
+    networks:
+      - hms-network
+    depends_on:
+      - redis
+    restart: unless-stopped
+    profiles:
+      - tools
+
+# ============================================================================
+# Volumes
+# ============================================================================
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  rabbitmq_data:
+    driver: local
+  # mongodb_data:
+  #   driver: local
+  pgadmin_data:
+    driver: local
+
+# ============================================================================
+# Networks
+# ============================================================================
+networks:
+  hms-network:
+    driver: bridge

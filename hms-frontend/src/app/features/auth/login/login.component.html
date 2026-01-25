@@ -1,0 +1,111 @@
+<div class="login-container">
+  <div class="login-card">
+    <!-- Tenant Branding -->
+    <div class="login-header">
+      <div class="logo-container" *ngIf="(tenantBranding$ | async) as branding">
+        <img *ngIf="branding.logoUrl" [src]="branding.logoUrl" [alt]="branding.facilityName" class="facility-logo">
+        <h1 class="facility-name">{{ branding.facilityName }}</h1>
+      </div>
+      <div class="logo-container" *ngIf="!(tenantBranding$ | async)">
+        <h1 class="facility-name">HMS Login</h1>
+      </div>
+      <p class="login-subtitle">Health Management System</p>
+    </div>
+
+    <!-- Error Message -->
+    <div class="alert alert-error" *ngIf="errorMessage">
+      <svg class="alert-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+      <span>{{ errorMessage }}</span>
+      <button type="button" class="alert-close" (click)="clearError()">&times;</button>
+    </div>
+
+    <!-- Login Form -->
+    <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="login-form">
+      <!-- Tenant Code -->
+      <div class="form-group">
+        <label for="tenantCode" class="form-label">
+          Tenant Code
+          <span class="required">*</span>
+        </label>
+        <input
+          type="text"
+          id="tenantCode"
+          formControlName="tenantCode"
+          class="form-input"
+          [class.error]="hasError('tenantCode', 'required')"
+          placeholder="Enter tenant code"
+          [disabled]="loading"
+        >
+        <span class="error-message" *ngIf="hasError('tenantCode', 'required')">
+          Tenant code is required
+        </span>
+      </div>
+
+      <!-- Username -->
+      <div class="form-group">
+        <label for="username" class="form-label">
+          Username
+          <span class="required">*</span>
+        </label>
+        <input
+          type="text"
+          id="username"
+          formControlName="username"
+          class="form-input"
+          [class.error]="hasError('username', 'required')"
+          placeholder="Enter username"
+          [disabled]="loading"
+          autocomplete="username"
+        >
+        <span class="error-message" *ngIf="hasError('username', 'required')">
+          Username is required
+        </span>
+      </div>
+
+      <!-- Password -->
+      <div class="form-group">
+        <label for="password" class="form-label">
+          Password
+          <span class="required">*</span>
+        </label>
+        <input
+          type="password"
+          id="password"
+          formControlName="password"
+          class="form-input"
+          [class.error]="hasError('password', 'required')"
+          placeholder="Enter password"
+          [disabled]="loading"
+          autocomplete="current-password"
+        >
+        <span class="error-message" *ngIf="hasError('password', 'required')">
+          Password is required
+        </span>
+      </div>
+
+      <!-- Submit Button -->
+      <button
+        type="submit"
+        class="btn-login"
+        [disabled]="loading"
+      >
+        <span *ngIf="!loading">Sign In</span>
+        <span *ngIf="loading" class="loading-spinner">
+          <svg class="spinner" viewBox="0 0 24 24">
+            <circle class="spinner-circle" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"/>
+          </svg>
+          Signing in...
+        </span>
+      </button>
+    </form>
+
+    <!-- Footer -->
+    <div class="login-footer">
+      <p class="footer-text">
+        Powered by <strong>Factorial Systems</strong>
+      </p>
+    </div>
+  </div>
+</div>

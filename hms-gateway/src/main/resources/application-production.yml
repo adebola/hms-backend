@@ -1,0 +1,78 @@
+server:
+  port: 8080
+
+logging:
+  level:
+    root: WARN
+    io.factorialsystems.gateway: INFO
+    org.springframework.cloud.gateway: INFO
+    org.springframework.web: WARN
+    reactor.netty: WARN
+
+spring:
+  application:
+    name: hms-gateway
+  threads:
+    virtual:
+      enabled: true
+  cloud:
+    gateway:
+      server:
+        webflux:
+          globalcors:
+            cors-configurations:
+              '[/**]':
+                # Production CORS - Update with actual domain
+                allowedOriginPatterns: "https://*.hms-platform.com"
+                allowedMethods: "GET, POST, PUT, DELETE, OPTIONS, PATCH"
+                allowedHeaders: "*"
+                exposedHeaders: "Authorization, Content-Type, Cache-Control, X-Requested-With, X-Request-ID, Location, Content-Disposition"
+                allowCredentials: true
+            add-to-simple-url-handler-mapping: true
+
+# Gateway service URLs (Kubernetes DNS)
+gateway:
+  services:
+    auth: http://hms-authorization-server:9000
+    communications: http://hms-communications-server:8081
+    patient: http://hms-patient-service:8082
+    prescription: http://hms-prescription-service:8083
+    billing: http://hms-billing-service:8084
+    appointment: http://hms-appointment-service:8085
+    lab: http://hms-lab-service:8086
+    pharmacy: http://hms-pharmacy-service:8087
+    reporting: http://hms-reporting-service:8088
+
+  cors:
+    allowed-origins:
+      - https://app.hms-platform.com
+      - https://admin.hms-platform.com
+
+  logging:
+    enabled: true
+    include-headers: false
+    include-payload: false
+    max-payload-length: 500
+
+# Actuator endpoints (restricted in production)
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: when-authorized
+    gateway:
+      enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+# Swagger UI disabled in production
+springdoc:
+  swagger-ui:
+    enabled: false
+  api-docs:
+    enabled: false

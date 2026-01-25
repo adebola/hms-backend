@@ -1,0 +1,160 @@
+server:
+  port: 9000
+  servlet:
+    context-path: /auth
+  error:
+    include-message: always
+    include-binding-errors: always
+
+spring:
+  application:
+    name: HMS Authorization Server
+
+  profiles:
+    active:
+
+  # Virtual Threads (Project Loom) - Java 21+
+  threads:
+    virtual:
+      enabled: true
+
+  # Database Configuration
+  datasource:
+    url: jdbc:postgresql://localhost:5432/hms_auth
+    username: postgres
+    password: password
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      idle-timeout: 300000
+      connection-timeout: 20000
+      max-lifetime: 1200000
+
+  # JPA Configuration
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        default_schema: public
+    open-in-view: false
+
+  # Flyway Configuration
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+    validate-on-migrate: true
+
+  # Redis Configuration
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password:
+      timeout: 2000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 2
+
+  # RabbitMQ Configuration
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: user
+    password: password
+    virtual-host: /
+    publisher-confirm-type: correlated
+    publisher-returns: true
+    listener:
+      simple:
+        acknowledge-mode: manual
+        prefetch: 10
+        retry:
+          enabled: true
+          initial-interval: 1000
+          max-attempts: 3
+
+  # Cache Configuration
+  cache:
+    type: redis
+    redis:
+      time-to-live: 300000
+      cache-null-values: false
+
+# Actuator Configuration
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+      probes:
+        enabled: true
+  health:
+    db:
+      enabled: true
+    redis:
+      enabled: true
+    rabbit:
+      enabled: true
+
+# Logging Configuration
+logging:
+  level:
+    root: INFO
+    io.factorialsystems.auth: DEBUG
+    org.springframework.security: INFO
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+# OpenAPI Configuration
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+
+# Application-specific Configuration
+hms:
+  auth:
+    jwt:
+      access-token-validity-minutes: ${JWT_ACCESS_TOKEN_VALIDITY:15}
+      refresh-token-validity-days: ${JWT_REFRESH_TOKEN_VALIDITY:7}
+      key-store-path: ${JWT_KEYSTORE_PATH:classpath:keys/authserver.jks}
+      key-store-password: ${JWT_KEYSTORE_PASSWORD:password}
+      key-alias: ${JWT_KEY_ALIAS:authserver}
+
+    password:
+      min-length: 8
+      max-length: 128
+      require-uppercase: true
+      require-lowercase: true
+      require-digit: true
+      require-special-char: true
+      history-count: 5
+      max-age-days: 90
+
+    lockout:
+      max-failed-attempts: 5
+      lockout-duration-minutes: 30
+      reset-failed-attempts-after-minutes: 15
+
+    session:
+      max-concurrent-sessions: 3
+      timeout-minutes: 30
+
+    platform:
+      admin-email: ${PLATFORM_ADMIN_EMAIL:admin@hms-platform.com}
+      admin-password: ${PLATFORM_ADMIN_PASSWORD:ChangeMe123!}

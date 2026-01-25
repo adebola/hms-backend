@@ -1,0 +1,47 @@
+server:
+  port: 0  # Random port for tests
+
+logging:
+  level:
+    io.factorialsystems.gateway: DEBUG
+    org.springframework.cloud.gateway: DEBUG
+
+spring:
+  application:
+    name: hms-gateway-test
+  cloud:
+    gateway:
+      server:
+        webflux:
+          globalcors:
+            cors-configurations:
+              '[/**]':
+                allowedOriginPatterns: "*"
+                allowedMethods: "*"
+                allowedHeaders: "*"
+                allowCredentials: true
+
+# Test service URLs (mock services)
+gateway:
+  services:
+    auth: http://localhost:9999
+    communications: http://localhost:9998
+    patient: http://localhost:9997
+    prescription: http://localhost:9996
+    billing: http://localhost:9995
+    appointment: http://localhost:9994
+    lab: http://localhost:9993
+    pharmacy: http://localhost:9992
+    reporting: http://localhost:9991
+
+  logging:
+    enabled: true
+    include-headers: true
+    include-payload: true
+    max-payload-length: 5000
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"

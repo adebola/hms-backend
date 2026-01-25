@@ -1,0 +1,143 @@
+<div class="dashboard-container">
+  <!-- Header -->
+  <header class="dashboard-header">
+    <div class="header-content">
+      <div class="header-left">
+        <div *ngIf="(tenantBranding$ | async) as branding" class="facility-info">
+          <img *ngIf="branding.logoUrl" [src]="branding.logoUrl" [alt]="branding.facilityName" class="facility-logo-small">
+          <h1 class="facility-name">{{ branding.facilityName }}</h1>
+        </div>
+        <h1 *ngIf="!(tenantBranding$ | async)" class="facility-name">HMS Dashboard</h1>
+      </div>
+      <div class="header-right">
+        <div class="user-info" *ngIf="currentUser">
+          <div class="user-avatar">
+            {{ currentUser.firstName.charAt(0) }}{{ currentUser.lastName.charAt(0) }}
+          </div>
+          <div class="user-details">
+            <span class="user-name">{{ fullName }}</span>
+            <span class="user-role">{{ primaryRole }}</span>
+          </div>
+        </div>
+        <button class="btn-logout" (click)="logout()">
+          <svg class="logout-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+          </svg>
+          Logout
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="dashboard-main">
+    <!-- Welcome Section -->
+    <section class="welcome-section">
+      <h2 class="section-title">Welcome back, {{ currentUser?.firstName || 'User' }}!</h2>
+      <p class="section-subtitle">Here's what's happening with your healthcare facility today.</p>
+    </section>
+
+    <!-- Loading State -->
+    <div *ngIf="loading" class="loading-state">
+      <div class="spinner-large"></div>
+      <p>Loading dashboard...</p>
+    </div>
+
+    <!-- User Information Card -->
+    <div *ngIf="!loading && currentUser" class="info-section">
+      <div class="info-card">
+        <h3 class="card-title">User Information</h3>
+        <div class="info-grid">
+          <div class="info-item">
+            <span class="info-label">Username</span>
+            <span class="info-value">{{ currentUser.username }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Email</span>
+            <span class="info-value">{{ currentUser.email }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Phone</span>
+            <span class="info-value">{{ currentUser.phoneNumber || 'Not provided' }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Status</span>
+            <span class="info-value">
+              <span class="status-badge" [class.active]="currentUser.status === 'ACTIVE'">
+                {{ currentUser.status }}
+              </span>
+            </span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Last Login</span>
+            <span class="info-value">{{ formatDate(currentUser.lastLoginAt) }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Member Since</span>
+            <span class="info-value">{{ formatDate(currentUser.createdAt) }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Roles Card -->
+      <div class="info-card">
+        <h3 class="card-title">Roles & Permissions</h3>
+        <div class="roles-section">
+          <div class="roles-list">
+            <h4 class="subsection-title">Your Roles</h4>
+            <div class="roles-chips">
+              <span *ngFor="let role of currentUser.roles" class="role-chip">
+                {{ role.name }}
+              </span>
+            </div>
+          </div>
+
+          <div class="permissions-list" *ngIf="tokenInfo">
+            <h4 class="subsection-title">Permissions ({{ tokenInfo.permissions?.length || 0 }})</h4>
+            <div class="permissions-grid">
+              <span *ngFor="let permission of tokenInfo.permissions" class="permission-badge">
+                {{ permission }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Token Information Card -->
+      <div class="info-card" *ngIf="tokenInfo">
+        <h3 class="card-title">Session Information</h3>
+        <div class="info-grid">
+          <div class="info-item">
+            <span class="info-label">Tenant Code</span>
+            <span class="info-value">{{ tokenInfo.tenant_code }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Tenant ID</span>
+            <span class="info-value">{{ tokenInfo.tenant_id }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Token Issued</span>
+            <span class="info-value">{{ formatDate(new Date(tokenInfo.iat * 1000).toISOString()) }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Token Expires</span>
+            <span class="info-value">{{ formatDate(new Date(tokenInfo.exp * 1000).toISOString()) }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Coming Soon Section -->
+    <section class="coming-soon-section">
+      <div class="coming-soon-card">
+        <svg class="coming-soon-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+        </svg>
+        <h3 class="coming-soon-title">More Features Coming Soon</h3>
+        <p class="coming-soon-description">
+          Patient management, appointments, prescriptions, billing, and more healthcare features are on the way!
+        </p>
+      </div>
+    </section>
+  </main>
+</div>

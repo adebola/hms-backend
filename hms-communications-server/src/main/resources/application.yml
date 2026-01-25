@@ -1,0 +1,147 @@
+server:
+  port: 8081
+  compression:
+    enabled: true
+    mime-types: application/json,application/xml,text/html,text/xml,text/plain
+
+spring:
+  application:
+    name: HMS Communications Server
+
+  threads:
+    virtual:
+      enabled: true
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/hms_communications
+    username: postgres
+    password: postgres
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 5
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+        use_sql_comments: false
+        jdbc:
+          batch_size: 20
+        order_inserts: true
+        order_updates: true
+        connection:
+          provider_disables_autocommit: true
+
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    locations: classpath:db/migration
+    validate-on-migrate: true
+
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password:
+      timeout: 2000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 2
+
+  cache:
+    type: redis
+    redis:
+      time-to-live: 300000  # 5 minutes
+      cache-null-values: false
+
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: user
+    password: password
+    virtual-host: /
+    listener:
+      simple:
+        acknowledge-mode: manual
+        prefetch: 1
+        retry:
+          enabled: true
+          max-attempts: 3
+          initial-interval: 1000
+          multiplier: 2.0
+          max-interval: 10000
+    template:
+      retry:
+        enabled: true
+        max-attempts: 3
+        initial-interval: 1000
+
+# HMS Communications Configuration
+hms:
+  communications:
+    brevo:
+      api-key: ${BREVO_API_KEY:your-brevo-api-key-here}
+      default-from-email: ${BREVO_FROM_EMAIL:noreply@hms-platform.com}
+      default-from-name: ${BREVO_FROM_NAME:HMS Platform}
+    sms:
+      provider: STUB  # Future: TWILIO
+      account-sid: ${TWILIO_ACCOUNT_SID:}
+      auth-token: ${TWILIO_AUTH_TOKEN:}
+      default-from-phone: ${TWILIO_FROM_PHONE:}
+    rate-limit:
+      default-daily-email-limit: 1000
+      default-daily-sms-limit: 100
+    message:
+      max-attachment-size-mb: 25
+      max-attachments-per-email: 10
+      max-retry-attempts: 3
+    jwt:
+      secret: ${JWT_SECRET:your-jwt-secret-must-match-auth-server}
+      issuer: ${JWT_ISSUER:hms-authorization-server}
+
+# Actuator Configuration
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: when-authorized
+  metrics:
+    tags:
+      application: ${spring.application.name}
+
+# Logging Configuration
+logging:
+  level:
+    root: INFO
+    io.factorialsystems.communications: DEBUG
+    org.springframework.web: INFO
+    org.springframework.security: INFO
+    org.springframework.amqp: INFO
+    org.hibernate.SQL: INFO
+    org.hibernate.type.descriptor.sql.BasicBinder: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+# SpringDoc OpenAPI
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+    tags-sorter: alpha
+  show-actuator: false

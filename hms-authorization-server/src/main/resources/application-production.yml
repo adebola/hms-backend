@@ -1,0 +1,72 @@
+server:
+  port: 9000
+  servlet:
+    context-path: /auth
+
+spring:
+  threads:
+    virtual:
+      enabled: true
+  application:
+    name: HMS Authorization Server
+
+  datasource:
+    url: ${DATABASE_URL}
+    username: ${DATABASE_USERNAME}
+    password: ${DATABASE_PASSWORD}
+    hikari:
+      maximum-pool-size: ${DB_POOL_SIZE:20}
+      minimum-idle: 5
+
+  jpa:
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      ssl:
+        enabled: ${REDIS_SSL:false}
+
+  rabbitmq:
+    host: ${RABBITMQ_HOST}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME}
+    password: ${RABBITMQ_PASSWORD}
+    virtual-host: ${RABBITMQ_VHOST:/}
+    ssl:
+      enabled: ${RABBITMQ_SSL:false}
+
+logging:
+  level:
+    root: WARN
+    io.factorialsystems.auth: INFO
+    org.springframework.security: WARN
+
+springdoc:
+  swagger-ui:
+    enabled: false  # Disable in production
+
+hms:
+  auth:
+    jwt:
+      access-token-validity-minutes: ${JWT_ACCESS_TOKEN_VALIDITY:15}
+      refresh-token-validity-days: ${JWT_REFRESH_TOKEN_VALIDITY:7}
+      key-store-path: ${JWT_KEYSTORE_PATH}
+      key-store-password: ${JWT_KEYSTORE_PASSWORD}
+      key-alias: ${JWT_KEY_ALIAS:authserver}
+    password:
+      min-length: 12
+      require-special-char: true
+      history-count: 10
+      max-age-days: 90
+    lockout:
+      max-failed-attempts: 5
+      lockout-duration-minutes: 30
+    platform:
+      admin-email: ${PLATFORM_ADMIN_EMAIL}
+      admin-password: ${PLATFORM_ADMIN_PASSWORD}

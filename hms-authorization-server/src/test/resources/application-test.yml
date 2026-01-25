@@ -1,0 +1,38 @@
+spring:
+  datasource:
+    url: jdbc:tc:postgresql:15:///hms_auth_test
+    username: test
+    password: test
+    driver-class-name: org.testcontainers.jdbc.ContainerDatabaseDriver
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+  rabbitmq:
+    host: localhost
+    port: 5672
+
+  flyway:
+    enabled: true
+
+logging:
+  level:
+    io.factorialsystems.auth: DEBUG
+    org.springframework.security: DEBUG
+
+hms:
+  auth:
+    jwt:
+      access-token-validity-minutes: 5
+      refresh-token-validity-days: 1
+      key-store-password: testpassword
+    lockout:
+      max-failed-attempts: 3
+      lockout-duration-minutes: 5
