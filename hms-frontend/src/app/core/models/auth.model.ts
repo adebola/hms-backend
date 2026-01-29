@@ -36,7 +36,7 @@ export interface DecodedToken {
   tenant_id: string;
   tenant_code: string;
   roles: string[];
-  permissions: string[];
+  permissions?: string[] | string; // Can be array or space-separated string, and optional
   exp: number;
   iat: number;
 }

@@ -16,14 +16,16 @@ import { DecodedToken } from '@core/models/auth.model';
 export class DashboardComponent implements OnInit {
   currentUser: User | null = null;
   tokenInfo: DecodedToken | null = null;
-  tenantBranding$ = this.tenantService.tenantBranding$;
+  tenantBranding$;
   loading = false;
 
   constructor(
     private authService: AuthService,
     private tenantService: TenantService,
     private router: Router
-  ) {}
+  ) {
+    this.tenantBranding$ = this.tenantService.tenantBranding$;
+  }
 
   ngOnInit(): void {
     this.loadUserInfo();
@@ -90,5 +92,40 @@ export class DashboardComponent implements OnInit {
     if (!dateString) return 'Never';
     const date = new Date(dateString);
     return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+  }
+
+  /**
+   * Format timestamp (seconds since epoch) to date string
+   */
+  formatTimestamp(timestamp: number | undefined): string {
+    if (!timestamp) return 'N/A';
+    const date = new Date(timestamp * 1000);
+    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+  }
+
+  /**
+   * Get permissions as array (handles string or array format from JWT)
+   */
+  get permissions(): string[] {
+    if (!this.tokenInfo?.permissions) return [];
+
+    // If permissions is already an array, return it
+    if (Array.isArray(this.tokenInfo.permissions)) {
+      return this.tokenInfo.permissions;
+    }
+
+    // If permissions is a string, split by space or comma
+    if (typeof this.tokenInfo.permissions === 'string') {
+      return this.tokenInfo.permissions.split(/[\s,]+/).filter(p => p.length > 0);
+    }
+
+    return [];
+  }
+
+  /**
+   * Get permissions count
+   */
+  get permissionsCount(): number {
+    return this.permissions.length;
   }
 }

@@ -93,9 +93,9 @@
           </div>
 
           <div class="permissions-list" *ngIf="tokenInfo">
-            <h4 class="subsection-title">Permissions ({{ tokenInfo.permissions?.length || 0 }})</h4>
+            <h4 class="subsection-title">Permissions ({{ permissionsCount }})</h4>
             <div class="permissions-grid">
-              <span *ngFor="let permission of tokenInfo.permissions" class="permission-badge">
+              <span *ngFor="let permission of permissions" class="permission-badge">
                 {{ permission }}
               </span>
             </div>
@@ -117,11 +117,11 @@
           </div>
           <div class="info-item">
             <span class="info-label">Token Issued</span>
-            <span class="info-value">{{ formatDate(new Date(tokenInfo.iat * 1000).toISOString()) }}</span>
+            <span class="info-value">{{ formatTimestamp(tokenInfo.iat) }}</span>
           </div>
           <div class="info-item">
             <span class="info-label">Token Expires</span>
-            <span class="info-value">{{ formatDate(new Date(tokenInfo.exp * 1000).toISOString()) }}</span>
+            <span class="info-value">{{ formatTimestamp(tokenInfo.exp) }}</span>
           </div>
         </div>
       </div>

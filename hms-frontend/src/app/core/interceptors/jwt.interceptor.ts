@@ -1,6 +1,6 @@
-import { HttpInterceptorFn, HttpErrorResponse } from '@angular/common/http';
+import { HttpInterceptorFn, HttpErrorResponse, HttpRequest, HttpHandlerFn, HttpEvent } from '@angular/common/http';
 import { inject } from '@angular/core';
-import { catchError, switchMap, throwError } from 'rxjs';
+import { Observable, catchError, switchMap, throwError } from 'rxjs';
 import { AuthService } from '../services/auth.service';
 import { environment } from '@environments/environment';
 
@@ -52,7 +52,11 @@ export const jwtInterceptor: HttpInterceptorFn = (req, next) => {
 /**
  * Handle token refresh and retry the original request
  */
-function handleTokenRefresh(authService: AuthService, req: any, next: any) {
+function handleTokenRefresh(
+  authService: AuthService,
+  req: HttpRequest<unknown>,
+  next: HttpHandlerFn
+): Observable<HttpEvent<unknown>> {
   return authService.refreshToken().pipe(
     switchMap(() => {
       // Get the new token

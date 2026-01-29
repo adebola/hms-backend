@@ -23,25 +23,7 @@
 
     <!-- Login Form -->
     <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="login-form">
-      <!-- Tenant Code -->
-      <div class="form-group">
-        <label for="tenantCode" class="form-label">
-          Tenant Code
-          <span class="required">*</span>
-        </label>
-        <input
-          type="text"
-          id="tenantCode"
-          formControlName="tenantCode"
-          class="form-input"
-          [class.error]="hasError('tenantCode', 'required')"
-          placeholder="Enter tenant code"
-          [disabled]="loading"
-        >
-        <span class="error-message" *ngIf="hasError('tenantCode', 'required')">
-          Tenant code is required
-        </span>
-      </div>
+      <!-- NO TENANT CODE FIELD - Pre-configured per deployment -->
 
       <!-- Username -->
       <div class="form-group">

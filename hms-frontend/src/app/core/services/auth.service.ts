@@ -234,7 +234,18 @@ export class AuthService {
    */
   hasPermission(permission: string): boolean {
     const decoded = this.getDecodedToken();
-    return decoded?.permissions?.includes(permission) ?? false;
+    if (!decoded?.permissions) return false;
+
+    // Handle both array and string formats
+    if (Array.isArray(decoded.permissions)) {
+      return decoded.permissions.includes(permission);
+    }
+
+    if (typeof decoded.permissions === 'string') {
+      return decoded.permissions.split(/[\s,]+/).includes(permission);
+    }
+
+    return false;
   }
 
   /**

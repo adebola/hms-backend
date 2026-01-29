@@ -18,7 +18,10 @@ export class LoginComponent implements OnInit {
   loading = false;
   errorMessage = '';
   returnUrl = '/dashboard';
-  tenantBranding$ = this.tenantService.tenantBranding$;
+  tenantBranding$;
+
+  // Tenant code from environment (not user input)
+  private readonly tenantCode: string;
 
   constructor(
     private formBuilder: FormBuilder,
@@ -26,41 +29,40 @@ export class LoginComponent implements OnInit {
     private tenantService: TenantService,
     private router: Router,
     private route: ActivatedRoute
-  ) {}
+  ) {
+    this.tenantBranding$ = this.tenantService.tenantBranding$;
+    // Resolve tenant code from environment or subdomain
+    this.tenantCode = this.resolveTenantCode();
+  }
 
   ngOnInit(): void {
     // Get return URL from route parameters or default to dashboard
     this.returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/dashboard';
 
-    // Determine tenant code
-    const tenantCode = this.determineTenantCode();
-
-    // Initialize login form
+    // Initialize login form (only username and password - no tenant code)
     this.loginForm = this.formBuilder.group({
-      tenantCode: [tenantCode || '', Validators.required],
       username: ['', Validators.required],
       password: ['', Validators.required]
     });
 
-    // Load tenant branding if tenant code is available
-    if (tenantCode) {
-      this.loadTenantBranding(tenantCode);
-    }
-
-    // Watch for tenant code changes to update branding
-    this.loginForm.get('tenantCode')?.valueChanges.subscribe(code => {
-      if (code) {
-        this.loadTenantBranding(code);
-      }
-    });
+    // Load tenant branding based on configured tenant
+    this.loadTenantBranding(this.tenantCode);
   }
 
   /**
-   * Determine tenant code from various sources
+   * Resolve tenant code from environment or subdomain
    */
-  private determineTenantCode(): string {
-    // Priority: URL param > Subdomain > Environment default
-    return this.tenantService.determineTenantCode() || environment.defaultTenantCode;
+  private resolveTenantCode(): string {
+    // Try subdomain detection first (if enabled)
+    if (environment.tenant.autoDetectFromSubdomain) {
+      const subdomain = this.tenantService.extractTenantFromSubdomain();
+      if (subdomain) {
+        return subdomain;
+      }
+    }
+
+    // Fall back to environment configuration
+    return environment.tenant.code;
   }
 
   /**
@@ -87,12 +89,13 @@ export class LoginComponent implements OnInit {
     this.loading = true;
     this.errorMessage = '';
 
-    const { tenantCode, username, password } = this.loginForm.value;
+    const { username, password } = this.loginForm.value;
 
-    this.authService.login(tenantCode, username, password).subscribe({
+    // Login with pre-configured tenant code
+    this.authService.login(this.tenantCode, username, password).subscribe({
       next: () => {
         // Store tenant code for future use
-        this.tenantService.setTenantCode(tenantCode);
+        this.tenantService.setTenantCode(this.tenantCode);
 
         // Navigate to return URL or dashboard
         this.router.navigate([this.returnUrl]);
