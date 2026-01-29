@@ -158,3 +158,4 @@ hms:
     platform:
       admin-email: ${PLATFORM_ADMIN_EMAIL:admin@hms-platform.com}
       admin-password: ${PLATFORM_ADMIN_PASSWORD:ChangeMe123!}
+      location: ${PLATFORM_LOCATION:http://localhost:9000/auth}

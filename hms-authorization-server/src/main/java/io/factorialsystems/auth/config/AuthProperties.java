@@ -58,5 +58,6 @@ public class AuthProperties {
     public static class PlatformProperties {
         private String adminEmail = "admin@hms-platform.com";
         private String adminPassword = "ChangeMe123!";
+        private String location = "http://localhost:9000/auth";
     }
 }

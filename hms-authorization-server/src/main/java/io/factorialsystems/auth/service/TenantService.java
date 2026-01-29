@@ -27,6 +27,7 @@ public class TenantService {
     private final PasswordService passwordService;
     private final AuthEventPublisher eventPublisher;
     private final CommunicationsPublisher communicationsPublisher;
+    private final OAuth2ClientService oauth2ClientService;
 
     @Transactional
     public TenantResponse registerTenant(TenantRegistrationRequest request) {
@@ -37,6 +38,24 @@ public class TenantService {
         Tenant tenant = Tenant.builder().code(code).slug(slug).name(request.getFacilityName()).facilityType(request.getFacilityType()).facilityLevel(request.getFacilityLevel()).registrationNumber(request.getRegistrationNumber()).email(request.getEmail()).phone(request.getPhone()).address(mapAddress(request.getAddress())).subscriptionPlan(request.getSubscriptionPlan()).subscriptionStartDate(LocalDate.now()).subscriptionEndDate(LocalDate.now().plusDays(request.getSubscriptionPlan().getTrialDays())).status(TenantStatus.PENDING_VERIFICATION).website(request.getWebsite()).taxId(request.getTaxId()).build();
         tenant = tenantRepository.save(tenant);
         String tempPassword = createAdminUser(tenant, request.getAdminUser());
+
+        // AUTO-CREATE OAUTH2 CLIENT FOR TENANT
+        String clientSecret = null;
+        try {
+            var clientResponse = oauth2ClientService.createClientForTenant(
+                tenant.getId(),
+                "SYSTEM" // Created by system during tenant registration
+            );
+            clientSecret = clientResponse.getClientSecret();
+            log.info("OAuth2 client created successfully for tenant: {} with clientId: {}",
+                     tenant.getCode(), clientResponse.getClientId());
+        } catch (Exception e) {
+            log.error("Failed to create OAuth2 client for tenant: {}. Tenant registration will continue.",
+                      tenant.getCode(), e);
+            // Decision: Continue with tenant registration even if OAuth client creation fails
+            // Admin can manually create client later via API
+        }
+
         eventPublisher.publishTenantCreated(tenant);
 
         // Send registration confirmation email
@@ -48,16 +67,29 @@ public class TenantService {
             tenant.getCode()
         );
 
-        // Send welcome email with temp password
+        // Send welcome email with temp password and OAuth credentials
+        String welcomeMessage = String.format(
+            "Your temporary password: %s\n\n" +
+            "OAuth2 Client Credentials:\n" +
+            "Client ID: %s-web-client\n" +
+            "%s\n\n" +
+            "Please change your password on first login.",
+            tempPassword,
+            tenant.getCode().toLowerCase().replace("_", "-"),
+            clientSecret != null ?
+                "Client Secret: " + clientSecret + "\n(IMPORTANT: Store securely - will not be shown again)" :
+                "OAuth client creation pending - contact support"
+        );
+
         communicationsPublisher.sendWelcomeEmail(
             tenant.getId(),
             request.getAdminUser().getEmail(),
             request.getAdminUser().getFirstName() + " " + request.getAdminUser().getLastName(),
-            tempPassword,
+            welcomeMessage,
             request.getFacilityName()
         );
 
-        log.info("Tenant registered successfully: {}", tenant.getCode());
+        log.info("Tenant registered successfully: {} with OAuth client", tenant.getCode());
         return mapToResponse(tenant);
     }
 

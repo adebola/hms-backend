@@ -5,6 +5,8 @@ import com.nimbusds.jose.jwk.RSAKey;
 import com.nimbusds.jose.jwk.source.ImmutableJWKSet;
 import com.nimbusds.jose.jwk.source.JWKSource;
 import com.nimbusds.jose.proc.SecurityContext;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -23,46 +25,90 @@ import org.springframework.security.oauth2.server.authorization.config.annotatio
 import org.springframework.security.oauth2.server.authorization.settings.AuthorizationServerSettings;
 import org.springframework.security.oauth2.server.authorization.settings.ClientSettings;
 import org.springframework.security.oauth2.server.authorization.settings.TokenSettings;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.ResourceLoader;
+import java.io.InputStream;
 import java.security.KeyPair;
-import java.security.KeyPairGenerator;
+import java.security.KeyStore;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
 import java.time.Duration;
 import java.util.UUID;
 
+@Slf4j
 @Configuration
+@RequiredArgsConstructor
 public class AuthorizationServerConfig {
     private final AuthProperties authProperties;
-    public AuthorizationServerConfig(AuthProperties authProperties) { this.authProperties = authProperties; }
+    private final ResourceLoader resourceLoader;
+
+    private static final String systemClientId = "hms-system-client";
 
     @Bean
     public RegisteredClientRepository registeredClientRepository(JdbcTemplate jdbcTemplate) {
-        JdbcRegisteredClientRepository repository = new JdbcRegisteredClientRepository(jdbcTemplate);
-        registerDefaultClients(repository);
-        return repository;
+        JdbcRegisteredClientRepository jdbcRepository = new JdbcRegisteredClientRepository(jdbcTemplate);
+
+        // Register system/platform client (for admin/platform operations)
+        registerSystemClient(jdbcRepository);
+
+        // Wrap with caching layer for performance
+        return new CachedRegisteredClientRepository(jdbcRepository);
     }
 
-    private void registerDefaultClients(JdbcRegisteredClientRepository repository) {
-        String webClientId = "hms-web-client";
-        if (repository.findByClientId(webClientId) == null) {
-            RegisteredClient webClient = RegisteredClient.withId(UUID.randomUUID().toString())
-                    .clientId(webClientId).clientSecret("{noop}hms-web-secret").clientName("HMS Web Application")
+    /**
+     * Register system/platform OAuth2 client
+     * This client is used for:
+     * - Platform-level administration
+     * - Cross-tenant operations by super admins
+     * - Internal service-to-service communication
+     *
+     * Note: Individual tenant clients are created automatically via OAuth2ClientService
+     */
+    private void registerSystemClient(JdbcRegisteredClientRepository repository) {
+        if (repository.findByClientId(systemClientId) == null) {
+            log.warn("Unable to Load System Client {} from database, creating default client", systemClientId);
+            RegisteredClient systemClient = RegisteredClient.withId(UUID.randomUUID().toString())
+                    .clientId(systemClientId)
+                    .clientSecret("{noop}hms-system-secret") // TODO: Use env variable in production
+                    .clientName("HMS System Client")
+
+                    // Authentication methods
                     .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC)
                     .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_POST)
+
+                    // Grant types
                     .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
                     .authorizationGrantType(AuthorizationGrantType.REFRESH_TOKEN)
                     .authorizationGrantType(AuthorizationGrantType.CLIENT_CREDENTIALS)
-                    .redirectUri("http://localhost:3000/callback").redirectUri("https://hms-platform.com/callback")
-                    .scope(OidcScopes.OPENID).scope(OidcScopes.PROFILE).scope(OidcScopes.EMAIL)
-                    .scope("patient:read").scope("patient:write")
-                    .clientSettings(ClientSettings.builder().requireAuthorizationConsent(false).requireProofKey(true).build())
-                    // Configures access and refresh token lifetimes
+
+                    // System-level redirect URIs
+                    .redirectUri("http://localhost:3000/callback")
+                    .redirectUri("http://localhost:4200/callback")
+                    .redirectUri("https://admin.hms-platform.com/callback")
+
+                    // Scopes
+                    .scope(OidcScopes.OPENID)
+                    .scope(OidcScopes.PROFILE)
+                    .scope(OidcScopes.EMAIL)
+                    .scope("system:admin")
+                    .scope("tenant:manage")
+
+                    // Client settings
+                    .clientSettings(ClientSettings.builder()
+                            .requireAuthorizationConsent(false)
+                            .requireProofKey(true)
+                            .build())
+
+                    // Token settings
                     .tokenSettings(TokenSettings.builder()
                             .accessTokenTimeToLive(Duration.ofMinutes(authProperties.getJwt().getAccessTokenValidityMinutes()))
                             .refreshTokenTimeToLive(Duration.ofDays(authProperties.getJwt().getRefreshTokenValidityDays()))
-                            .reuseRefreshTokens(false).build())
+                            .reuseRefreshTokens(false)
+                            .build())
+
                     .build();
-            repository.save(webClient);
+
+            repository.save(systemClient);
         }
     }
 
@@ -78,19 +124,54 @@ public class AuthorizationServerConfig {
 
     @Bean
     public JWKSource<SecurityContext> jwkSource() {
-        KeyPair keyPair = generateRsaKey();
+        KeyPair keyPair = loadRsaKeyFromKeyStore();
         RSAPublicKey publicKey = (RSAPublicKey) keyPair.getPublic();
         RSAPrivateKey privateKey = (RSAPrivateKey) keyPair.getPrivate();
-        RSAKey rsaKey = new RSAKey.Builder(publicKey).privateKey(privateKey).keyID(UUID.randomUUID().toString()).build();
+        RSAKey rsaKey = new RSAKey.Builder(publicKey)
+                .privateKey(privateKey)
+                .keyID(UUID.randomUUID().toString())
+                .build();
+        log.info("JWT signing keys loaded from keystore: {}", authProperties.getJwt().getKeyStorePath());
         return new ImmutableJWKSet<>(new JWKSet(rsaKey));
     }
 
-    private static KeyPair generateRsaKey() {
+    /**
+     * Load RSA key pair from Java KeyStore (JKS)
+     * Uses configuration from application.yml:
+     * - hms.auth.jwt.key-store-path
+     * - hms.auth.jwt.key-store-password
+     * - hms.auth.jwt.key-alias
+     */
+    private KeyPair loadRsaKeyFromKeyStore() {
         try {
-            KeyPairGenerator gen = KeyPairGenerator.getInstance("RSA");
-            gen.initialize(2048);
-            return gen.generateKeyPair();
-        } catch (Exception e) { throw new IllegalStateException("Failed to generate RSA key pair", e); }
+            // Get keystore configuration
+            String keyStorePath = authProperties.getJwt().getKeyStorePath();
+            String keyStorePassword = authProperties.getJwt().getKeyStorePassword();
+            String keyAlias = authProperties.getJwt().getKeyAlias();
+
+            // Load keystore file
+            Resource resource = resourceLoader.getResource(keyStorePath);
+            KeyStore keyStore = KeyStore.getInstance("JKS");
+
+            try (InputStream inputStream = resource.getInputStream()) {
+                keyStore.load(inputStream, keyStorePassword.toCharArray());
+            }
+
+            // Load key pair from keystore
+            KeyStore.PasswordProtection keyPassword = new KeyStore.PasswordProtection(keyStorePassword.toCharArray());
+            KeyStore.PrivateKeyEntry privateKeyEntry = (KeyStore.PrivateKeyEntry) keyStore.getEntry(keyAlias, keyPassword);
+
+            if (privateKeyEntry == null) {
+                throw new IllegalStateException("Key alias '" + keyAlias + "' not found in keystore");
+            }
+
+            RSAPublicKey publicKey = (RSAPublicKey) privateKeyEntry.getCertificate().getPublicKey();
+            RSAPrivateKey privateKey = (RSAPrivateKey) privateKeyEntry.getPrivateKey();
+
+            return new KeyPair(publicKey, privateKey);
+        } catch (Exception e) {
+            throw new IllegalStateException("Failed to load RSA key pair from keystore: " + authProperties.getJwt().getKeyStorePath(), e);
+        }
     }
 
     @Bean
@@ -100,6 +181,8 @@ public class AuthorizationServerConfig {
 
     @Bean
     public AuthorizationServerSettings authorizationServerSettings() {
-        return AuthorizationServerSettings.builder().issuer("http://localhost:9000").build();
+        return AuthorizationServerSettings.builder()
+                .issuer(authProperties.getPlatform().getLocation())
+                .build();
     }
 }
