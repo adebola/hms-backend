@@ -1,6 +1,6 @@
 package io.factorialsystems.gateway.filter;
 
-import io.factorialsystems.gateway.config.GatewayProperties;
+import io.factorialsystems.gateway.config.HmsGatewayProperties;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
@@ -34,7 +34,7 @@ public class LoggingFilter implements GlobalFilter, Ordered {
     private static final String REQUEST_ID_HEADER = "X-Request-ID";
     private static final String START_TIME_ATTR = "startTime";
 
-    private final GatewayProperties gatewayProperties;
+    private final HmsGatewayProperties gatewayProperties;
 
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {

@@ -3,19 +3,22 @@ package io.factorialsystems.gateway.config;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.context.annotation.Configuration;
+import org.springframework.stereotype.Component;
 
 /**
  * Configuration properties for HMS Gateway.
  *
  * Binds to 'gateway' prefix in application.yml.
  * Provides type-safe access to service URLs and gateway settings.
+ *
+ * Note: Renamed to HmsGatewayProperties to avoid bean name conflicts
+ * with Spring Cloud Gateway's internal GatewayProperties bean.
  */
 @Getter
 @Setter
-@Configuration
+@Component
 @ConfigurationProperties(prefix = "gateway")
-public class GatewayProperties {
+public class HmsGatewayProperties {
 
     private ServiceUrls services = new ServiceUrls();
     private CorsProperties cors = new CorsProperties();

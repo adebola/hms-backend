@@ -276,9 +276,7 @@ management:
   endpoint:
     health:
       show-details: always
-    gateway:
-      enabled: true
-  metrics:
-    export:
-      prometheus:
+  prometheus:
+    metrics:
+      export:
         enabled: true

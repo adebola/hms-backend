@@ -39,10 +39,10 @@ public class GlobalErrorWebExceptionHandler extends AbstractErrorWebExceptionHan
 
     public GlobalErrorWebExceptionHandler(
             ErrorAttributes errorAttributes,
-            WebProperties.Resources resources,
+            WebProperties webProperties,
             ApplicationContext applicationContext,
             ServerCodecConfigurer codecConfigurer) {
-        super(errorAttributes, resources, applicationContext);
+        super(errorAttributes, webProperties.getResources(), applicationContext);
         this.setMessageWriters(codecConfigurer.getWriters());
     }
 
